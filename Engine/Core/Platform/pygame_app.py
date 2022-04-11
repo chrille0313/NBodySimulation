@@ -35,6 +35,7 @@ class PygameApp(App):
         # Initialize App variables
         self.window = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
+        self.deltaTime = 0
         self._running = False
 
         self._events = pygame.event.get()
@@ -159,6 +160,6 @@ class PygameApp(App):
             self._App__events()  # Make sure we update the engine's events before we call on_update
             self.on_update()
             self._App__draw()
-            self.clock.tick(self.fps)  # Run application on desired framerate
+            self.deltaTime = self.clock.tick(self.fps) / 1000  # Run application on desired framerate
 
         self.quit()

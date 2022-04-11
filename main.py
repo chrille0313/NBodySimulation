@@ -4,7 +4,7 @@ from body import Body
 
 class Game(PygameApp):
 	def __init__(self, windowSize: tuple):
-		super().__init__(windowSize)
+		super().__init__(windowSize, 0)
 
 		self.bodies = [Body(self.windowCenter, 10)]
 
@@ -14,8 +14,8 @@ class Game(PygameApp):
 
 	def on_update(self):
 		for body in self.bodies:
-			body.apply_force(Vector2(0, 0.1))
-			body.update(1)
+			body.apply_force(Vector2(0, 9.82))
+			body.update(self.deltaTime)
 
 
 game = Game((800, 800))
