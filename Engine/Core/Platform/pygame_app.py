@@ -1,6 +1,7 @@
 import pygame
-from Engine.Core.app import App
+from Engine.Core.app import *
 from Engine.colors import Colors
+from Engine.constants import *
 
 
 class PygameApp(App):
@@ -15,7 +16,7 @@ class PygameApp(App):
         * Add delta-time parameter
     """
 
-    def __init__(self, windowSize: tuple, fps: int = 60, caption: str = "PyGame Window"):
+    def __init__(self, windowSize: tuple, fps: int = 60, caption: str = "PyGame Window", camera: Camera2D = None):
         """
         Initializes the pygame module as well as the application.
 
@@ -25,7 +26,7 @@ class PygameApp(App):
         """
 
         # Initialize application
-        super().__init__(windowSize, fps, caption)
+        super().__init__(windowSize, fps, caption, camera)
 
         # Initialize pygame module
         pygame.init()
@@ -84,7 +85,7 @@ class PygameApp(App):
 
         self._events = pygame.event.get()  # Update events accessible by applications
 
-    def draw_circle(self, position, radius, color=Colors.WHITE, borderWidth=0) -> None:
+    def draw_circle(self, position, radius, color=Colors.WHITE, borderWidth=0, fromCamera=False) -> None:
         """
         Draw a circle on the screen.
 
@@ -92,12 +93,21 @@ class PygameApp(App):
         :param radius: The radius of the circle
         :param color: The color of the circle
         :param borderWidth: The width of the border of the circle. Set to 0 to fill the circle. (default: 0)
+        :param fromCamera: Whether or not to draw from the mainCamera's perspective. (default: False)
         :return: None
         """
 
-        pygame.draw.circle(self.window, color, position, radius, borderWidth)
+        if fromCamera:
+            # Draw relative to camera
+            relPos = (Vector2(position) - self.mainCamera.pos) * self.mainCamera.zoom
+            relPos.y *= -1  # Flip y-axis (y-axis is inverted in pygame)
+            relRadius = radius * self.mainCamera.zoom
 
-    def draw_rect(self, position, width, height, color=Colors.WHITE, borderWidth=0) -> None:
+            pygame.draw.circle(self.window, color, relPos + self.windowSize / 2, relRadius, borderWidth)
+        else:
+            pygame.draw.circle(self.window, color, position, radius, borderWidth)
+
+    def draw_rect(self, position, width, height, color=Colors.WHITE, borderWidth=0, fromCamera=False) -> None:
         """
         Draw a rectangle on the screen.
 
@@ -106,12 +116,13 @@ class PygameApp(App):
         :param height: The height of the rectangle
         :param color: The color of the rectangle
         :param borderWidth: The width of the border of the rectangle. Set to 0 to fill the rectangle. (default: 0)
+        :param fromCamera: Whether or not to draw from the mainCamera's perspective. (default: False)
         :return: None
         """
 
         pygame.draw.rect(self.window, color, (position[0], position[1], width, height), borderWidth)
 
-    def draw_line(self, start, end, color=Colors.WHITE, width=1) -> None:
+    def draw_line(self, start, end, color=Colors.WHITE, width=1, fromCamera=False) -> None:
         """
         Draw a line on the screen.
 
@@ -119,10 +130,15 @@ class PygameApp(App):
         :param end: The end position of the line
         :param color: The color of the line
         :param width: The width of the line. (default: 1)
+        :param fromCamera: Whether or not to draw from the mainCamera's perspective. (default: False)
         :return: None
         """
 
-        pygame.draw.line(self.window, color, start, end, width)
+        if fromCamera:
+            line = (Vector2(start, end) - self.mainCamera.pos) * self.mainCamera.zoom + self.windowSize / 2
+            pygame.draw.line(self.window, color, line[0], line[1], width * self.mainCamera.zoom)
+        else:
+            pygame.draw.line(self.window, color, start, end, width * self.mainCamera.zoom)
 
     def _App__draw(self) -> None:
         """
