@@ -1,13 +1,17 @@
 from pygame import Vector2
 from abc import ABC, abstractmethod, abstractproperty
+from Engine.camera2d import Camera2D
 
 
 class App(ABC):
     """
     Abstract class for module-specific applications to inherit from.
+
+    TODO:
+        - Add layers for rendering.
     """
 
-    def __init__(self, windowSize: tuple, fps: int = 60, caption: str = "Application Window"):
+    def __init__(self, windowSize: tuple, fps: int = 60, caption: str = "Application Window", camera: Camera2D = None):
         """
         Initialize the application.
 
@@ -16,10 +20,12 @@ class App(ABC):
         :param caption: The caption of the window. (default: "Game Window")
         """
 
-        self.windowSize = Vector2(windowSize[0], windowSize[1])
+        self.windowSize = Vector2(windowSize)
         self.windowCenter = Vector2(self.windowSize.x / 2, self.windowSize.y / 2)
         self._caption = caption
         self.fps = fps
+
+        self.mainCamera = camera if camera is not None else Camera2D(Vector2(0, 0), self.windowSize)
 
     @property
     def caption(self) -> str:
@@ -72,13 +78,13 @@ class App(ABC):
         """
         pass
 
-    def draw_circle(self, pos, radius, color, borderWidth=0):
+    def draw_circle(self, pos, radius, color, borderWidth=0, fromCamera=False):
         raise NotImplementedError("draw_circle is not implemented")
 
-    def draw_rect(self, position, width, height, color, borderWidth=0):
+    def draw_rect(self, position, width, height, color, borderWidth=0, fromCamera=False):
         raise NotImplementedError("draw_rect is not implemented")
 
-    def draw_line(self, start, end, color, width=1):
+    def draw_line(self, start, end, color, width=1, fromCamera=False):
         raise NotImplementedError("draw_line is not implemented")
 
     def on_update(self) -> None:
