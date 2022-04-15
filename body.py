@@ -5,11 +5,12 @@ from math import sqrt, log10
 
 class Body:
 	def __init__(self, pos: Vector2, mass: float, vel: Vector2 = None, acc: Vector2 = None, color=Colors.WHITE):
-		self.pos = pos
-		self.vel = vel if vel is not None else Vector2(0, 0)
-		self.acc = acc if acc is not None else Vector2(0, 0)
+		self.position = pos
+		self.velocity = vel if vel is not None else Vector2(0, 0)
+		self.acceleration = acc if acc is not None else Vector2(0, 0)
 		self.mass = mass
 		self.size = sqrt(mass)
+		self.heat = 1
 
 		self.color = color
 
@@ -21,7 +22,7 @@ class Body:
 		:return: None
 		"""
 
-		self.acc += force / self.mass
+		self.acceleration += force / self.mass
 
 	def gravitational_force(self, other: 'Body', G=5) -> Vector2:
 		"""
@@ -32,7 +33,7 @@ class Body:
 		:return: None
 		"""
 
-		displacement = other.pos - self.pos
+		displacement = other.position - self.position
 		direction = displacement.normalize()
 		force = (self.mass * other.mass) / max(displacement.magnitude_squared(), (self.size + other.size) ** 2)  # avoid division by zero
 		return direction * G * force
@@ -46,10 +47,11 @@ class Body:
 		"""
 
 		if isinstance(other, self.__class__):
-			return (self.pos - other.pos).magnitude_squared() <= (self.size + other.size) * (self.size + other.size)
+			return (self.position - other.position).magnitude_squared() <= (self.size + other.size) * (self.size + other.size)
 		else:
-			top, left, bottom, right = other
-			return self.pos.y + self.size >= top, self.pos.x - self.size <= left, self.pos.y - self.size <= bottom, self.pos.x + self.size >= right
+			left, top, width, height = other
+			right, bottom = left + width, top - height
+			return self.position.y + self.size >= top, self.position.x - self.size <= left, self.position.y - self.size <= bottom, self.position.x + self.size >= right
 
 	def __discrete_collision(self, other):
 		"""
@@ -65,18 +67,19 @@ class Body:
 				# return
 
 			# Calculate the new velocities using conservation of momentum and kinetic energy
-			normal = (self.pos - other.pos).normalize()
-			p = 2 * (self.vel.dot(normal) - other.vel.dot(normal)) / (self.mass + other.mass)
-			self.vel -= p * other.mass * normal
-			other.vel += p * self.mass * normal
+			normal = (self.position - other.position).normalize()
+			p = 2 * (self.velocity.dot(normal) - other.velocity.dot(normal)) / (self.mass + other.mass)
+			self.velocity -= p * other.mass * normal
+			other.velocity += p * self.mass * normal
 
 			# Make sure the bodies don't overlap
-			self.pos = other.pos + normal * (other.size + self.size)
-
+			self.position = other.position + normal * (other.size + self.size)
+			self.heat += 0.1 * other.mass * other.velocity.magnitude() / self.mass / 10
+			other.heat += 0.1 * self.mass * self.velocity.magnitude() / other.mass / 10
 		else:
 			bounds = self.is_colliding(other)
 			newVel = Vector2(-1 if bounds[1] or bounds[3] else 1, -1 if bounds[0] or bounds[2] else 1)
-			self.vel = self.vel.elementwise() * newVel
+			self.velocity = self.velocity.elementwise() * newVel
 
 	def __continous_collision(self, other):
 		"""
@@ -111,13 +114,15 @@ class Body:
 		:return: None
 		"""
 
-		self.vel += self.acc * dt
-		self.pos += self.vel * dt
+		self.velocity += self.acceleration * dt
+		self.position += self.velocity * dt
 
-		self.acc = Vector2(0, 0)  # Reset the acceleration as no force is acting on the body (we don't want to upset Newton)
+		self.acceleration = Vector2(0, 0)  # Reset the acceleration as no force is acting on the body (we don't want to upset Newton)
+		self.heat *= 0.99  # Reduce the heat of the body
 
-		colorGrade = min(abs(int(255 * log10(self.vel.magnitude_squared() / self.mass / 2))), 255)
-		self.color = (255 - colorGrade, colorGrade, 50)
+		colorGrade = min(self.heat, 1)
+		# colorGradeBlue = min(abs(int(log10(self.vel.magnitude_squared() / self.mass / 2))), 1)
+		self.color = (255 * colorGrade, 255 * (1 - colorGrade), 0)
 
 	def draw(self, app: App):
 		"""
@@ -127,10 +132,10 @@ class Body:
 		:return:
 		"""
 
-		app.draw_circle(Vector2(self.pos.x, self.pos.y), self.size, self.color, fromCamera=True)
+		app.draw_circle(Vector2(self.position.x, self.position.y), self.size, self.color, fromCamera=True)
 
 	def __str__(self):
-		return f"Body(pos={self.pos}, vel={self.vel}, acc={self.acc}, mass={self.mass})"
+		return f"Body(pos={self.position}, vel={self.velocity}, acc={self.acceleration}, mass={self.mass})"
 
 	def __repr__(self):
 		return self.__str__()

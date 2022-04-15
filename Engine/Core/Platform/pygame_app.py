@@ -99,7 +99,7 @@ class PygameApp(App):
 
         if fromCamera:
             # Draw relative to camera
-            relPos = (Vector2(position) - self.mainCamera.pos) * self.mainCamera.zoom
+            relPos = (Vector2(position) - self.mainCamera.position) * self.mainCamera.zoom
             relPos.y *= -1  # Flip y-axis (y-axis is inverted in pygame)
             relRadius = radius * self.mainCamera.zoom
 
@@ -120,7 +120,16 @@ class PygameApp(App):
         :return: None
         """
 
-        pygame.draw.rect(self.window, color, (position[0], position[1], width, height), borderWidth)
+        if fromCamera:
+            # Draw relative to camera
+            relPos = (Vector2(position) - self.mainCamera.position) * self.mainCamera.zoom
+            relPos.y *= -1  # Flip y-axis (y-axis is inverted in pygame)
+            relWidth, relHeight = width * self.mainCamera.zoom, height * self.mainCamera.zoom
+
+            relPos += self.windowSize / 2
+            pygame.draw.rect(self.window, color, (relPos.x, relPos.y, relWidth, relHeight), borderWidth)
+        else:
+            pygame.draw.rect(self.window, color, (position[0], position[1], width, height), borderWidth)
 
     def draw_line(self, start, end, color=Colors.WHITE, width=1, fromCamera=False) -> None:
         """
@@ -135,7 +144,7 @@ class PygameApp(App):
         """
 
         if fromCamera:
-            line = (Vector2(start, end) - self.mainCamera.pos) * self.mainCamera.zoom + self.windowSize / 2
+            line = (Vector2(start, end) - self.mainCamera.position) * self.mainCamera.zoom + self.windowSize / 2
             pygame.draw.line(self.window, color, line[0], line[1], width * self.mainCamera.zoom)
         else:
             pygame.draw.line(self.window, color, start, end, width * self.mainCamera.zoom)
