@@ -30,7 +30,7 @@ class Game(PygameApp):
 
 			self.bodies.append(Body(pos, mass, vel))
 
-		self.debug = False  # Comment to disable debug mode
+		self.debug = True  # Comment to disable debug mode
 
 	def draw_debug(self):
 		self.quadTree.draw(self)
