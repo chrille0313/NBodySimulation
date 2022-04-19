@@ -91,16 +91,30 @@ class Body:
 		"""
 
 		if isinstance(other, self.__class__):
-			# Calculate the new velocities using conservation of momentum and kinetic energy
-			normal = (self.position - other.position).normalize()
-			p = 2 * (self.velocity.dot(normal) - other.velocity.dot(normal)) / (self.mass + other.mass)
-			self.velocity -= p * other.mass * normal
-			other.velocity += p * self.mass * normal
+			# Make sure the bodies don't overlap by moving them apart based on their mass
+			displacement = self.position - other.position
+			d = displacement.magnitude()
+			mtd = displacement * ((self.size + other.size) - d) / d  # minimum translation distance to push balls apart after intersecting
 
-			# Make sure the bodies don't overlap
-			self.position = other.position + normal * (other.size + self.size)
+			inverseMass = 1 / self.mass
+			inverseMassOther = 1 / other.mass
 
-			# Calculate the heat of the collision using momentum
+			self.position += mtd * inverseMass / (inverseMass + inverseMassOther)
+			other.position -= mtd * inverseMassOther / (inverseMass + inverseMassOther)
+
+			vDiff = self.velocity - other.velocity
+			if vDiff.dot(displacement.normalize()) > 0.0:
+				return  # No collision as bodies are moving apart
+
+			# Calculate the new velocities using conservation of momentum and kinetic energy (elastic collisions)
+			# https://en.wikipedia.org/wiki/Elastic_collision
+
+			displacement = self.position - other.position  # Update displacement as we have moved the bodies
+			impulse = 2 / (self.mass + other.mass) * vDiff.dot(displacement) / displacement.magnitude_squared() * displacement
+			self.velocity -= impulse * other.mass
+			other.velocity += impulse * self.mass
+
+			# Calculate the heat of the collision using momentum (only for coloring)
 			self.heat += 0.01 * other.mass * other.velocity.magnitude() / self.mass / 10
 			other.heat += 0.01 * self.mass * self.velocity.magnitude() / other.mass / 10
 
