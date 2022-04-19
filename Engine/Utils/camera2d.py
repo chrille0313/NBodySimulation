@@ -8,3 +8,12 @@ class Camera2D:
 		self.zoom = zoom
 		self.moveSpeed = moveSpeed
 		self.zoomSpeed = zoomSpeed
+
+	def move(self, direction: Vector2, dt: float = 1.0):
+		self.position += direction * self.moveSpeed * dt / self.zoom
+
+	def zoom_in(self, dt: float = 1.0):
+		self.zoom *= self.zoomSpeed * dt
+
+	def zoom_out(self, dt: float = 1.0):
+		self.zoom /= self.zoomSpeed * dt
