@@ -1,16 +1,38 @@
-from Engine.Core.app import App, Vector2
-from Engine.colors import Colors
-from math import sqrt, log10
+from Engine.Core.app import App
+from Engine.Utils.utils import Colors, Vector2, Rect
+from math import sqrt
+
+from typing import Union, Tuple
 
 
 class Body:
+	"""
+	A class that represents a body in space.
+
+	Attributes:
+		mass: The mass of the body.
+		position: The position of the body.
+		acceleration: The acceleration of the body.
+		velocity: The velocity of the body.
+		acceleration: The acceleration of the body.
+		color: The color of the body.
+
+	Methods:
+		update: Updates the body.
+		draw: Draws the body.
+		apply_force: Applies a force to the body.
+		gravitational_force: Calculates the gravitational force between two bodies.
+		is_colliding: Checks if the body is colliding with given object.
+		collide: Handles the collision between this body and given object.
+	"""
+
 	def __init__(self, pos: Vector2, mass: float, vel: Vector2 = None, acc: Vector2 = None, color=Colors.WHITE):
 		self.position = pos
 		self.velocity = vel if vel is not None else Vector2(0, 0)
 		self.acceleration = acc if acc is not None else Vector2(0, 0)
 		self.mass = mass
 		self.size = sqrt(mass)
-		self.heat = 1
+		self.heat = 0
 
 		self.color = color
 
@@ -22,36 +44,43 @@ class Body:
 		:return: None
 		"""
 
-		self.acceleration += force / self.mass
+		self.acceleration += force / self.mass  # F = ma
 
-	def gravitational_force(self, other: 'Body', G=5) -> Vector2:
+	def gravitational_force(self, other: 'Body', G: float = 5.0) -> Vector2:
 		"""
 		Calculate the gravitational force between two bodies.
 
 		:param other: other body to calculate the force with
 		:param G: gravitational constant (default: 10)
-		:return: None
+		:return: Vector2 representing the gravitational force
 		"""
 
 		displacement = other.position - self.position
+		minDisplacement = self.size + other.size  # Minimum distance between bodies is the sum of their radii
 		direction = displacement.normalize()
-		force = (self.mass * other.mass) / max(displacement.magnitude_squared(), (self.size + other.size) ** 2)  # avoid division by zero
+
+		force = (self.mass * other.mass) / max(displacement.magnitude_squared(), minDisplacement * minDisplacement)  # Don't divide by zero
 		return direction * G * force
 
-	def is_colliding(self, other):
+	def is_colliding(self, other: Union['Body', Rect]) -> Union[bool, Tuple[bool, bool, bool, bool]]:
 		"""
 		Check if two bodies are colliding.
 
 		:param other: other body to check collision with
-		:return: True if bodies are colliding, else False
+		:return: True if colliding, False otherwise
 		"""
 
 		if isinstance(other, self.__class__):
-			return (self.position - other.position).magnitude_squared() <= (self.size + other.size) * (self.size + other.size)
-		else:
-			left, top, width, height = other
-			right, bottom = left + width, top - height
+			# If the distance between the two bodies is less than the sum of their radii, they are colliding
+			totSize = self.size + other.size
+			return (self.position - other.position).magnitude_squared() <= totSize * totSize
+
+		elif isinstance(other, Rect):
+			left, top, right, bottom = other.x, other.y, other.x + other.width, other.y - other.height
 			return self.position.y + self.size >= top, self.position.x - self.size <= left, self.position.y - self.size <= bottom, self.position.x + self.size >= right
+
+		else:
+			raise TypeError(f"Unhandled type! Expected Body or Rect, got {type(other)}")
 
 	def __discrete_collision(self, other):
 		"""
@@ -62,10 +91,6 @@ class Body:
 		"""
 
 		if isinstance(other, self.__class__):
-			# return if the bodies are moving away from each other
-			# if self.vel.dot(other.vel) > 0:
-				# return
-
 			# Calculate the new velocities using conservation of momentum and kinetic energy
 			normal = (self.position - other.position).normalize()
 			p = 2 * (self.velocity.dot(normal) - other.velocity.dot(normal)) / (self.mass + other.mass)
@@ -74,14 +99,22 @@ class Body:
 
 			# Make sure the bodies don't overlap
 			self.position = other.position + normal * (other.size + self.size)
-			self.heat += 0.1 * other.mass * other.velocity.magnitude() / self.mass / 10
-			other.heat += 0.1 * self.mass * self.velocity.magnitude() / other.mass / 10
-		else:
+
+			# Calculate the heat of the collision using momentum
+			self.heat += 0.01 * other.mass * other.velocity.magnitude() / self.mass / 10
+			other.heat += 0.01 * self.mass * self.velocity.magnitude() / other.mass / 10
+
+		elif isinstance(other, Rect):
 			bounds = self.is_colliding(other)
+
+			# Invert the velocity if the body is colliding with the edge of the rectangle
 			newVel = Vector2(-1 if bounds[1] or bounds[3] else 1, -1 if bounds[0] or bounds[2] else 1)
 			self.velocity = self.velocity.elementwise() * newVel
 
-	def __continous_collision(self, other):
+		else:
+			raise TypeError(f"Unhandled type! Expected Body or Rect, got {type(other)}")
+
+	def __continous_collision(self, other: Union['Body', Rect]):
 		"""
 		Perform continous collision between two bodies.
 
@@ -91,7 +124,7 @@ class Body:
 
 		pass
 
-	def collide(self, other, continuous=False):
+	def collide(self, other: Union['Body', Rect], continuous: bool = False):
 		"""
 		Perform collision between two bodies.
 
@@ -118,10 +151,9 @@ class Body:
 		self.position += self.velocity * dt
 
 		self.acceleration = Vector2(0, 0)  # Reset the acceleration as no force is acting on the body (we don't want to upset Newton)
-		self.heat *= 0.99  # Reduce the heat of the body
+		self.heat *= 0.99 * dt  # Reduce the heat of the body
 
-		colorGrade = min(self.heat, 1)
-		# colorGradeBlue = min(abs(int(log10(self.vel.magnitude_squared() / self.mass / 2))), 1)
+		colorGrade = min(self.heat, 1)  # Clamp to 1
 		self.color = (255 * colorGrade, 255 * (1 - colorGrade), 0)
 
 	def draw(self, app: App):

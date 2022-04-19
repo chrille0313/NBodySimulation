@@ -1,6 +1,6 @@
-from pygame import Vector2, Rect
 from Engine.Core.app import App
-from Engine.colors import Colors
+from Engine.Utils.utils import Vector2, Rect, Colors
+
 from body import Body
 
 
@@ -35,7 +35,7 @@ class QuadTree:
 
 	def insert(self, body):
 		# QuadTree does not contain the body
-		if not self.contains_point(body.position):
+		if not (self.boundary.x <= body.position.x <= self.boundary.x + self.boundary.width and self.boundary.y >= body.position.y >= self.boundary.y - self.boundary.height):
 			return False
 
 		if not self.divided:  # leaf node
@@ -59,10 +59,6 @@ class QuadTree:
 		self.bodiesCenter += body.position * body.mass
 		self.totalMass += body.mass
 
-	@property
-	def approximate_body(self):
-		return Body(self.bodiesCenter / self.totalMass, self.totalMass)
-
 	def collide(self, body: 'Body'):
 		if not self.contains_body(body):
 			return False
@@ -78,22 +74,28 @@ class QuadTree:
 	def gravity(self, body: 'Body', theta: float):
 		if not self.divided:
 			if self.body is None or self.body == body:
-				return Vector2(0, 0)
+				return
 			else:
-				return body.gravitational_force(self.body)
+				disp = self.body.position - body.position
+				totSize = self.body.size + body.size
+				body.acceleration += disp.normalize() * self.body.mass / max(disp.magnitude_squared(), totSize*totSize) * 5
+				return
 
-		approximateBody = self.approximate_body
-		if self.boundary.width * self.boundary.width / (body.position - approximateBody.position).magnitude_squared() < theta:
-			return body.gravitational_force(approximateBody)
+		if self.totalMass == 0:
+			return
 
-		totGravity = Vector2(0, 0)
+		pos = self.bodiesCenter / self.totalMass
+		totMass = self.totalMass
+		displacement = (pos - body.position)
+		if self.boundary.width * self.boundary.width / displacement.magnitude_squared() < theta:
+			body.acceleration += displacement.normalize() * totMass / displacement.magnitude_squared() * 5
+			return
+
 		for child in self.children:
-			totGravity += child.gravity(body, theta)
-
-		return totGravity
+			child.gravity(body, theta)
 
 	def draw(self, app: App):
-		app.draw_rect((self.boundary.x, self.boundary.y), self.boundary.width, self.boundary.height, Colors.WHITE, 1, fromCamera=True)
+		app.draw_rect((self.boundary.x, self.boundary.y), self.boundary.width, self.boundary.height, Colors.MAGENTA, 1, fromCamera=True)
 
 		if self.divided:
 			for child in self.children:

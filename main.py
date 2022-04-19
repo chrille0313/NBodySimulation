@@ -1,9 +1,9 @@
 from Engine.engine import *
+
 from body import Body
 from quadtree import QuadTree
 
 import pygame
-from pygame import Rect
 from numpy import random
 
 
@@ -20,15 +20,24 @@ class Game(PygameApp):
 		boundScale = 100
 		self.bounds = Rect(-self.windowSize.x / 2 * boundScale, self.windowSize.y / 2 * boundScale, self.windowSize.x * boundScale, self.windowSize.y * boundScale)
 
-		bodies = 100
-		maxSpeed = 10
-		minMass, maxMass = 100, 5000
+		bodies = 300
+		maxSpeed = 40
+		minMass, maxMass = 10, 1000
 		# self.bodies = [Body(Vector2(1, 250), 500, Vector2(0, -3)), Body(Vector2(2, -250), 250, Vector2(0, 3))]
 		self.bodies = [Body(Vector2(random.randint(self.bounds.x / scale, (self.bounds.x + self.bounds.width) / scale),
 		                            random.randint((self.bounds.y - self.bounds.height) / scale, self.bounds.y / scale)),
 		               random.randint(minMass, maxMass),
 		               Vector2((random.rand() * 2 - 1), (random.rand() * 2 - 1)) * maxSpeed)
 		               for _ in range(bodies)]
+
+		for body in self.bodies:
+			toCenter = -body.position.normalize()
+			body.velocity = Vector2(toCenter.y, -toCenter.x) * maxSpeed
+
+		self.bodies.append(Body(Vector2(0, 0), 1000000, Vector2(0, 0)))
+
+	def draw_debug(self):
+		self.quadTree.draw(self)
 
 	def camera_control(self):
 		if self.isKeyPressed[pygame.K_w]:
@@ -49,7 +58,7 @@ class Game(PygameApp):
 		for body in self.bodies:
 			body.draw(self)
 
-		# self.quadTree.draw(self)
+		# self.draw_debug()
 
 	def on_update(self):
 		if self.isKeyPressed[pygame.K_ESCAPE]:
@@ -72,7 +81,7 @@ class Game(PygameApp):
 			"""
 
 			# QUADTREE GRAVITY
-			body.apply_force(self.quadTree.gravity(body, 0.5))
+			self.quadTree.gravity(body, 1)
 
 		# COLLISION DETECTION
 		for i, body in enumerate(self.bodies):

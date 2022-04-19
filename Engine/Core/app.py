@@ -1,6 +1,7 @@
-from pygame import Vector2
-from abc import ABC, abstractmethod, abstractproperty
-from Engine.camera2d import Camera2D
+from abc import ABC, abstractmethod
+
+from Engine.Utils.utils import Vector2
+from Engine.Utils.camera2d import Camera2D
 
 
 class App(ABC):

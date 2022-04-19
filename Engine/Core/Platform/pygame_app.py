@@ -1,7 +1,7 @@
-import pygame
 from Engine.Core.app import *
-from Engine.colors import Colors
-from Engine.constants import *
+from Engine.Utils.utils import Colors
+
+import pygame
 
 
 class PygameApp(App):
