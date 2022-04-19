@@ -71,28 +71,32 @@ class QuadTree:
 			for child in self.children:
 				child.collide(body)
 
-	def gravity(self, body: 'Body', theta: float):
+	def gravity(self, body: 'Body', theta: float, g: float):
 		if not self.divided:
 			if self.body is None or self.body == body:
 				return
 			else:
+				# NOTE: This should be a call to the body's gravity function, but because of optimizations, it's not
 				disp = self.body.position - body.position
 				totSize = self.body.size + body.size
-				body.acceleration += disp.normalize() * self.body.mass / max(disp.magnitude_squared(), totSize*totSize) * 5
+
+				body.acceleration += disp.normalize() * self.body.mass / max(disp.magnitude_squared(), totSize*totSize) * g
 				return
 
 		if self.totalMass == 0:
 			return
 
+		# Optimization: if the bodies are far enough, approximate the force by all bodies in the quadtree
 		pos = self.bodiesCenter / self.totalMass
 		totMass = self.totalMass
 		displacement = (pos - body.position)
 		if self.boundary.width * self.boundary.width / displacement.magnitude_squared() < theta:
-			body.acceleration += displacement.normalize() * totMass / displacement.magnitude_squared() * 5
+			# NOTE: This should be a call to the body's gravity function, but because of optimizations, it's not
+			body.acceleration += displacement.normalize() * totMass / displacement.magnitude_squared() * g
 			return
 
 		for child in self.children:
-			child.gravity(body, theta)
+			child.gravity(body, theta, g)
 
 	def draw(self, app: App):
 		app.draw_rect((self.boundary.x, self.boundary.y), self.boundary.width, self.boundary.height, Colors.MAGENTA, 1, fromCamera=True)
