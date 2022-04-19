@@ -28,6 +28,8 @@ class App(ABC):
 
         self.mainCamera = camera if camera is not None else Camera2D(Vector2(0, 0), self.windowSize)
 
+        self.debug = False
+
     @property
     def caption(self) -> str:
         """
