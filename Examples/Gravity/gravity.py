@@ -3,30 +3,21 @@ from Engine.engine import *
 from body import Body
 from quadtree import QuadTree
 
-import pygame
-import random
+import pygame  # Only for keycodes!
+from numpy import random
 
 
 class Game(PygameApp):
-	"""
-	TODO:
-		- Make examples
-	"""
-
 	def __init__(self, windowSize: tuple):
 		super().__init__(windowSize, 60, camera=Camera2D(Vector2(0, 0), Vector2(windowSize), 1))
 
-		self.bounds = Rect(-self.windowSize.x / 2, self.windowSize.y / 2, self.windowSize.x, self.windowSize.y)
+		scale = 1
+		self.bounds = Rect(-self.windowSize.x / 2 * scale, self.windowSize.y / 2 * scale, self.windowSize.x * scale, self.windowSize.y * scale)
 
-		self.bodies = [Body(Vector2(0, 250), 1000, Vector2(0, -3)), Body(Vector2(0, -250), 250, Vector2(0, 3))]
+		bodies = 300
+		maxSpeed = 40
+		minMass, maxMass = 10, 1000
 
-		"""
-		# Uncomment to generate random bodies
-		
-		bodies = 250
-		maxSpeed = 3
-		minMass, maxMass = 10, 100
-		
 		self.bodies = []
 
 		for _ in range(bodies):
@@ -38,7 +29,11 @@ class Game(PygameApp):
 			vel = Vector2(random.randint(-maxSpeed, maxSpeed), random.randint(-maxSpeed, maxSpeed))
 
 			self.bodies.append(Body(pos, mass, vel))
-		"""
+
+		self.debug = False  # Comment to disable debug mode
+
+	def draw_debug(self):
+		self.quadTree.draw(self)
 
 	def camera_control(self):
 		if self.isKeyPressed[pygame.K_w]:
@@ -55,11 +50,6 @@ class Game(PygameApp):
 		if self.isKeyPressed[pygame.K_e]:
 			self.mainCamera.zoom_out()
 
-	def draw_debug(self):
-		self.draw_rect(self.bounds[:2], self.bounds[2], self.bounds[3], (255, 255, 255))
-
-		self.quadTree.draw(self)
-
 	def on_draw(self):
 		for body in self.bodies:
 			body.draw(self)
@@ -73,25 +63,22 @@ class Game(PygameApp):
 
 		self.camera_control()
 
-		# Build quadtree for faster calculations
 		self.quadTree = QuadTree(self.bounds)
 
 		for body in self.bodies:
 			self.quadTree.insert(body)
 
-		# COLLISION DETECTION
-		for i, body in enumerate(self.bodies):
+		# GRAVITY
+		for body in self.bodies:
 			"""
-			# NAIVE COLLISION DETECTION
-			for body2 in self.bodies[i:]:
+			# NAIVE GRAVITY
+			for body2 in self.bodies:
 				if body != body2:
-					body.collide(body2)
+					body.apply_force(body.gravitational_force(body2))
 			"""
 
-			# QUADTREE COLLISION DETECTION
-			self.quadTree.collide(body)
-
-			body.collide(self.bounds)
+			# QUADTREE GRAVITY
+			self.quadTree.gravity(body, 1, 5)
 
 		# UPDATE BODIES
 		for body in self.bodies:
