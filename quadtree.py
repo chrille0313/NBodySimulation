@@ -89,7 +89,7 @@ class QuadTree:
 		# Optimization: if the bodies are far enough, approximate the force by all bodies in the quadtree
 		pos = self.bodiesCenter / self.totalMass
 		totMass = self.totalMass
-		displacement = (pos - body.position)
+		displacement = pos - body.position
 		if self.boundary.width * self.boundary.width / displacement.magnitude_squared() < theta:
 			# NOTE: This should be a call to the body's gravity function, but because of optimizations, it's not
 			body.acceleration += displacement.normalize() * totMass / displacement.magnitude_squared() * g
