@@ -20,13 +20,12 @@ class Game(PygameApp):
 
 		self.bodies = [Body(Vector2(0, 250), 1000, Vector2(0, -3)), Body(Vector2(0, -250), 250, Vector2(0, 3))]
 
-
 		# Uncomment to generate random bodies
-		
-		bodies = 250
+
+		bodies = 500
 		maxSpeed = 3
 		minMass, maxMass = 10, 100
-		
+
 		self.bodies = []
 
 		for _ in range(bodies):
@@ -38,7 +37,6 @@ class Game(PygameApp):
 			vel = Vector2(random.randint(-maxSpeed, maxSpeed), random.randint(-maxSpeed, maxSpeed))
 
 			self.bodies.append(Body(pos, mass, vel))
-
 
 		# self.debug = True  # Comment to disable debug mode
 
