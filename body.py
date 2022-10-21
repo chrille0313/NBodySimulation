@@ -94,13 +94,13 @@ class Body:
 			# Make sure the bodies don't overlap by moving them apart based on their mass
 			displacement = self.position - other.position
 			d = displacement.magnitude()
-			mtd = displacement * ((self.size + other.size) - d) / d  # minimum translation distance to push balls apart after intersecting
+			intersectionDistance = displacement * (self.size + other.size - d) / d  # minimum distance to make sure bodies don't overlap
 
 			inverseMass = 1 / self.mass
 			inverseMassOther = 1 / other.mass
 
-			self.position += mtd * inverseMass / (inverseMass + inverseMassOther)
-			other.position -= mtd * inverseMassOther / (inverseMass + inverseMassOther)
+			self.position += intersectionDistance * inverseMass / (inverseMass + inverseMassOther)
+			other.position -= intersectionDistance * inverseMassOther / (inverseMass + inverseMassOther)
 
 			vDiff = self.velocity - other.velocity
 			if vDiff.dot(displacement.normalize()) > 0.0:
